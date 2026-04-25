@@ -399,64 +399,60 @@ with h2:
       <div class="section-sub">Taux de réussite (livraison effective) par mode logistique</div>
     """, unsafe_allow_html=True)
 
-    # Calcul taux de réussite par type de prestation
-    col_presta = "Type de préstation"
-    if col_presta not in df.columns:
-        # Chercher la colonne avec une orthographe proche
-        col_presta = [c for c in df.columns if "pr" in c.lower() and "station" in c.lower() or "prestation" in c.lower() or "presta" in c.lower()]
-        col_presta = col_presta[0] if col_presta else None
+    col_presta = [c for c in df.columns if "presta" in c.lower() or "pr" in c.lower() and "station" in c.lower()]
+    col_presta = col_presta[0] if col_presta else None
 
     if col_presta:
         logist = df.groupby(col_presta).agg(
             Total=("Livré","count"),
             Livres=("Livré","sum")
         ).reset_index()
-        logist["Taux"] = logist["Livres"] / logist["Total"] * 100
-        logist["Echec"] = 100 - logist["Taux"]
-        logist = logist[logist[col_presta].str.strip().str.upper().isin(
-            ["A DOMICILE","STOP DESK"]
-        )]
+        logist["Taux"]  = (logist["Livres"] / logist["Total"] * 100).round(1)
+        logist = logist[logist[col_presta].str.strip().str.upper().isin(["A DOMICILE","STOP DESK"])]
         logist[col_presta] = logist[col_presta].str.strip().str.title()
 
-        fig_log = go.Figure()
-        fig_log.add_trace(go.Bar(
-            name="✅ Livré avec succès",
-            x=logist[col_presta],
-            y=logist["Taux"],
-            marker_color="#10b981",
-            text=logist["Taux"].apply(lambda x: f"{x:.1f}%"),
-            textposition="inside",
-            textfont=dict(color="white", size=13, family="Inter"),
-            hovertemplate="<b>%{x}</b><br>Taux réussite: %{y:.1f}%<extra></extra>"
+        # Créer les labels avec taux inclus dans le label
+        labels = [f"{row[col_presta]}<br>{row['Taux']}% succès"
+                  for _, row in logist.iterrows()]
+
+        fig_donut_log = go.Figure(go.Pie(
+            labels=logist[col_presta],
+            values=logist["Taux"],
+            hole=0.60,
+            marker=dict(
+                colors=["#6366f1", "#06b6d4"],
+                line=dict(color="white", width=3)
+            ),
+            textinfo="label+percent",
+            textfont=dict(size=13, family="Inter"),
+            hovertemplate="<b>%{label}</b><br>Taux de réussite: %{value:.1f}%<extra></extra>",
+            direction="clockwise",
+            sort=False
         ))
-        fig_log.add_trace(go.Bar(
-            name="↩️ Retour / Échec",
-            x=logist[col_presta],
-            y=logist["Echec"],
-            marker_color="#f43f5e",
-            text=logist["Echec"].apply(lambda x: f"{x:.1f}%"),
-            textposition="inside",
-            textfont=dict(color="white", size=13, family="Inter"),
-            hovertemplate="<b>%{x}</b><br>Taux retour: %{y:.1f}%<extra></extra>"
-        ))
-        fig_log.update_layout(
-            barmode="stack", height=280,
-            margin=dict(l=0,r=0,t=10,b=0),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            xaxis=dict(showgrid=False, tickfont=dict(size=13,color="#334155")),
-            yaxis=dict(showgrid=True, gridcolor="#f8f9fa",
-                       tickfont=dict(size=10,color="#94a3b8"),
-                       ticksuffix="%", range=[0,100]),
-            legend=dict(orientation="h", y=1.12, font=dict(size=11)),
+        fig_donut_log.add_annotation(
+            text="<b>Fiabilité</b><br>Livraison",
+            x=0.5, y=0.5,
+            font=dict(size=13, color="#0f172a", family="Inter"),
+            showarrow=False
+        )
+        fig_donut_log.update_layout(
+            height=280,
+            margin=dict(l=0, r=0, t=10, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            showlegend=True,
+            legend=dict(
+                orientation="h", y=-0.08,
+                x=0.5, xanchor="center",
+                font=dict(size=11)
+            ),
             font=dict(family="Inter, sans-serif")
         )
-        st.plotly_chart(fig_log, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_donut_log, use_container_width=True,
+                        config={"displayModeBar": False})
     else:
-        st.info("Colonne 'Type de préstation' introuvable dans le dataset.")
+        st.info("Colonne 'Type de préstation' introuvable.")
 
     st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
 # ─── CLUBS VS ANIME (rangée séparée) ────────────────────────────────────────────
 univ_col1, univ_col2 = st.columns([4, 6], gap="medium")
