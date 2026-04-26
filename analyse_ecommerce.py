@@ -227,53 +227,103 @@ with lc:
       <div class="section-title">📈 Comment nos ventes évoluent-elles dans le temps ?</div>
       <div class="section-sub">Tendance mensuelle du CA avec volume de commandes associé</div>
     """, unsafe_allow_html=True)
+
     monthly = (df.groupby("Mois")
                .agg(CA=("Montant","sum"), Commandes=("Montant","count"))
                .reset_index().sort_values("Mois"))
+
+    # Forcer les 12 mois de l'année
+    all_months = [f"2025-{str(m).zfill(2)}" for m in range(1, 13)]
+    monthly = monthly.set_index("Mois").reindex(all_months).reset_index()
+    monthly.columns = ["Mois", "CA", "Commandes"]
+    monthly["CA"]        = monthly["CA"].fillna(0)
+    monthly["Commandes"] = monthly["Commandes"].fillna(0)
+
+    # Labels français
+    mois_labels = {
+        "2025-01":"Jan","2025-02":"Fév","2025-03":"Mar","2025-04":"Avr",
+        "2025-05":"Mai","2025-06":"Jun","2025-07":"Jul","2025-08":"Aoû",
+        "2025-09":"Sep","2025-10":"Oct","2025-11":"Nov","2025-12":"Déc"
+    }
+    monthly["MoisLabel"] = monthly["Mois"].map(mois_labels)
+
+    ca_max  = monthly["CA"].max()
+    cmd_max = monthly["Commandes"].max()
+
     fig_area = go.Figure()
+
+    # Barres Commandes (axe secondaire, plafonnées bas)
+    fig_area.add_trace(go.Bar(
+        x=monthly["MoisLabel"], y=monthly["Commandes"],
+        name="Commandes", yaxis="y2",
+        marker_color="rgba(16,185,129,0.30)",
+        hovertemplate="<b>%{x}</b><br>Commandes: %{y}<extra></extra>"
+    ))
+
+    # Courbe CA (axe principal, positionnée haut)
     fig_area.add_trace(go.Scatter(
-        x=monthly["Mois"], y=monthly["CA"],
+        x=monthly["MoisLabel"], y=monthly["CA"],
         mode="lines+markers", name="CA (DZD)",
         line=dict(color="#6366f1", width=3),
         marker=dict(size=8, color="#6366f1", line=dict(color="white", width=2)),
-        fill="tozeroy", fillcolor="rgba(99,102,241,0.12)",
+        fill="tozeroy", fillcolor="rgba(99,102,241,0.10)",
         hovertemplate="<b>%{x}</b><br>CA: %{y:,.0f} DZD<extra></extra>"
     ))
-    fig_area.add_trace(go.Bar(
-        x=monthly["Mois"], y=monthly["Commandes"],
-        name="Commandes", yaxis="y2",
-        marker_color="rgba(16,185,129,0.25)",
-        hovertemplate="<b>%{x}</b><br>Commandes: %{y}<extra></extra>"
-    ))
+
     fig_area.update_layout(
-        height=320, margin=dict(l=0,r=0,t=10,b=0),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(showgrid=False, tickfont=dict(size=11,color="#94a3b8")),
-        yaxis=dict(showgrid=True, gridcolor="#f8f9fa",
-                   tickfont=dict(size=10,color="#94a3b8"), tickformat=",.0f"),
-        yaxis2=dict(overlaying="y", side="right", showgrid=False,
-                    tickfont=dict(size=10,color="#94a3b8")),
-        legend=dict(orientation="h", y=1.08, x=0, font=dict(size=11)),
-        hovermode="x unified", font=dict(family="Inter, sans-serif")
+        height=320,
+        margin=dict(l=0, r=0, t=10, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,   # ← légende supprimée
+        hovermode="x unified",
+        font=dict(family="Inter, sans-serif"),
+        xaxis=dict(
+            showgrid=False,
+            tickfont=dict(size=11, color="#94a3b8"),
+            categoryorder="array",
+            categoryarray=list(mois_labels.values())
+        ),
+        # Axe CA (principal) — occupe toute la hauteur
+        yaxis=dict(
+            showgrid=True, gridcolor="#f8f9fa",
+            tickfont=dict(size=10, color="#94a3b8"),
+            tickformat=",.0f",
+            range=[0, ca_max * 1.25]   # ← courbe bien au-dessus des barres
+        ),
+        # Axe Commandes (secondaire) — plafond bas pour que les barres restent en bas
+        yaxis2=dict(
+            overlaying="y", side="right",
+            showgrid=False,
+            tickfont=dict(size=10, color="#94a3b8"),
+            range=[0, cmd_max * 5]     # ← barres écrasées vers le bas
+        ),
     )
     st.plotly_chart(fig_area, use_container_width=True, config={"displayModeBar": False})
     st.markdown("</div>", unsafe_allow_html=True)
-
 with rc:
     st.markdown("""
     <div class="card">
       <div class="section-title">🏷️ Quelle catégorie domine notre marché ?</div>
       <div class="section-sub">Part de chaque type de produit dans le CA total</div>
     """, unsafe_allow_html=True)
+
     cat_data = (df.groupby("categorie")["Montant"].sum().reset_index()
                 .rename(columns={"categorie":"Cat","Montant":"CA"}))
     cat_data["Cat"] = cat_data["Cat"].str.title()
+
     fig_donut = go.Figure(go.Pie(
-        labels=cat_data["Cat"], values=cat_data["CA"], hole=0.62,
-        marker=dict(colors=["#6366f1","#06b6d4","#10b981"],
-                    line=dict(color="white", width=3)),
+        labels=cat_data["Cat"],
+        values=cat_data["CA"],
+        hole=0.62,
+        marker=dict(
+            colors=["#6366f1","#06b6d4","#10b981"],
+            line=dict(color="white", width=3)
+        ),
+        textinfo="label+percent",          # ← texte sur les tranches
+        textfont=dict(size=12, family="Inter"),
+        insidetextorientation="radial",
         hovertemplate="<b>%{label}</b><br>%{value:,.0f} DZD<br>%{percent}<extra></extra>",
-        textinfo="none"
     ))
     fig_donut.add_annotation(
         text=f"<b>{total_ca/1000:.1f}K</b><br>DZD",
@@ -281,16 +331,14 @@ with rc:
         font=dict(color="#0f172a", family="Inter")
     )
     fig_donut.update_layout(
-        height=300, margin=dict(l=0,r=0,t=10,b=0),
-        paper_bgcolor="rgba(0,0,0,0)", showlegend=True,
-        legend=dict(orientation="h", y=-0.08, x=0.5,
-                    xanchor="center", font=dict(size=11)),
+        height=300,
+        margin=dict(l=0, r=0, t=10, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,                  # ← légende supprimée
         font=dict(family="Inter, sans-serif")
     )
     st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
     st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
 # ─── TOP PRODUITS + WILAYAS ─────────────────────────────────────────────────────
 ins1, ins2 = st.columns([5, 5], gap="medium")
