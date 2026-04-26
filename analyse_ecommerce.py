@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import warnings
 warnings.filterwarnings("ignore")
 
-# ─── PAGE CONFIG ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Diaa Print & Designs · BI Dashboard",
     page_icon="🖨️",
@@ -13,7 +12,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ─── CUSTOM CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -25,11 +23,10 @@ st.markdown("""
   section[data-testid="stSidebar"] { display: none; }
   .stApp { background-color: #F8F9FA; }
   .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 1600px; }
-
   .card {
     background: #ffffff; border-radius: 16px; padding: 24px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.06);
-    border: 1px solid #f0f0f0;
+    border: 1px solid #f0f0f0; margin-bottom: 0px;
   }
   .kpi-card {
     background: #ffffff; border-radius: 16px; padding: 22px 20px;
@@ -47,7 +44,6 @@ st.markdown("""
   .badge-red    { background: #fee2e2; color: #dc2626; }
   .badge-blue   { background: #dbeafe; color: #2563eb; }
   .badge-orange { background: #ffedd5; color: #ea580c; }
-
   .kpi-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0;
     height: 4px; border-radius: 16px 16px 0 0;
@@ -57,10 +53,8 @@ st.markdown("""
   .kpi-panier::before  { background: linear-gradient(90deg, #10b981, #059669); }
   .kpi-livr::before    { background: linear-gradient(90deg, #f59e0b, #d97706); }
   .kpi-retour::before  { background: linear-gradient(90deg, #f43f5e, #dc2626); }
-
   .section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
   .section-sub   { font-size: 12px; color: #94a3b8; margin-bottom: 16px; }
-
   .dashboard-header {
     background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
     border-radius: 20px; padding: 30px 36px; margin-bottom: 24px;
@@ -75,7 +69,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ─── DATA LOADING & CLEANING ────────────────────────────────────────────────────
+# ─── DATA ───────────────────────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
     df = pd.read_excel("diaaprintanddesigns(1).xlsx",
@@ -97,24 +91,22 @@ def load_data():
 
 df = load_data()
 
-# ─── KPIs GLOBAUX ───────────────────────────────────────────────────────────────
+# ─── KPIs ───────────────────────────────────────────────────────────────────────
 total_ca    = df["Montant"].sum()
 nb_cmd      = len(df)
 panier      = df["Montant"].mean()
 taux_livr   = df["Livré"].mean()  * 100
 taux_retour = df["Retour"].mean() * 100
 
-# IA KPI 1 — Catégorie à risque
 retour_by_cat = df.groupby("categorie")["Retour"].mean() * 100
 cat_risque    = retour_by_cat.idxmax()
 risk_val      = retour_by_cat.max()
 
-# IA KPI 2 — Wilaya la plus rentable
 wilaya_ca   = df.groupby("Wilaya")["Montant"].sum()
 top_wil     = wilaya_ca.idxmax()
 top_wil_pct = wilaya_ca.max() / total_ca * 100
 
-# ─── HEADER (sans badge mise à jour) ────────────────────────────────────────────
+# ─── HEADER ─────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="dashboard-header">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
@@ -132,52 +124,42 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ─── KPI CARDS (5 cards) ────────────────────────────────────────────────────────
+# ─── KPI CARDS ──────────────────────────────────────────────────────────────────
 k1, k2, k3, k4, k5 = st.columns(5)
-
 with k1:
-    st.markdown(f"""
-    <div class="kpi-card kpi-ca">
+    st.markdown(f"""<div class="kpi-card kpi-ca">
       <span class="kpi-icon">💰</span>
       <div class="kpi-label">Chiffre d'Affaires</div>
       <div class="kpi-value">{total_ca/1000:.1f}K</div>
       <span class="kpi-badge badge-blue">DZD Total</span>
     </div>""", unsafe_allow_html=True)
-
 with k2:
-    st.markdown(f"""
-    <div class="kpi-card kpi-cmd">
+    st.markdown(f"""<div class="kpi-card kpi-cmd">
       <span class="kpi-icon">📦</span>
       <div class="kpi-label">Commandes</div>
       <div class="kpi-value">{nb_cmd:,}</div>
       <span class="kpi-badge badge-blue">total</span>
     </div>""", unsafe_allow_html=True)
-
 with k3:
-    st.markdown(f"""
-    <div class="kpi-card kpi-panier">
+    st.markdown(f"""<div class="kpi-card kpi-panier">
       <span class="kpi-icon">🛒</span>
       <div class="kpi-label">Panier Moyen</div>
       <div class="kpi-value">{panier:,.0f}</div>
       <span class="kpi-badge badge-green">DZD / cmd</span>
     </div>""", unsafe_allow_html=True)
-
 with k4:
     bc_l = "badge-green" if taux_livr >= 70 else "badge-red"
     lb_l = "✅ Bon" if taux_livr >= 70 else "⚠️ Faible"
-    st.markdown(f"""
-    <div class="kpi-card kpi-livr">
+    st.markdown(f"""<div class="kpi-card kpi-livr">
       <span class="kpi-icon">🚚</span>
       <div class="kpi-label">Taux de Livraison</div>
       <div class="kpi-value">{taux_livr:.1f}%</div>
       <span class="kpi-badge {bc_l}">{lb_l}</span>
     </div>""", unsafe_allow_html=True)
-
 with k5:
     bc_r = "badge-red" if taux_retour >= 20 else "badge-orange"
     lb_r = "⚠️ Élevé" if taux_retour >= 20 else "✅ Contrôlé"
-    st.markdown(f"""
-    <div class="kpi-card kpi-retour">
+    st.markdown(f"""<div class="kpi-card kpi-retour">
       <span class="kpi-icon">↩️</span>
       <div class="kpi-label">Taux de Retour</div>
       <div class="kpi-value">{taux_retour:.1f}%</div>
@@ -186,7 +168,7 @@ with k5:
 
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
-# ─── BONUS KPI ROW (IA) ─────────────────────────────────────────────────────────
+# ─── BONUS KPI IA ───────────────────────────────────────────────────────────────
 b1, b2 = st.columns(2)
 with b1:
     st.markdown(f"""
@@ -201,7 +183,6 @@ with b1:
         </div>
       </div>
     </div>""", unsafe_allow_html=True)
-
 with b2:
     st.markdown(f"""
     <div class="card" style="display:flex;align-items:center;gap:20px;padding:18px 24px;">
@@ -218,12 +199,11 @@ with b2:
 
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
-# ─── AREA CHART + DONUT CATÉGORIE ───────────────────────────────────────────────
+# ─── AREA CHART + DONUT ─────────────────────────────────────────────────────────
 lc, rc = st.columns([7, 3], gap="medium")
 
 with lc:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">📈 Comment nos ventes évoluent-elles dans le temps ?</div>
       <div class="section-sub">Tendance mensuelle du CA avec volume de commandes associé</div>
     """, unsafe_allow_html=True)
@@ -232,14 +212,12 @@ with lc:
                .agg(CA=("Montant","sum"), Commandes=("Montant","count"))
                .reset_index().sort_values("Mois"))
 
-    # Forcer les 12 mois de l'année
+    # ── 12 mois complets, données manquantes = None (pas 0) pour ne pas casser la courbe
     all_months = [f"2025-{str(m).zfill(2)}" for m in range(1, 13)]
-    monthly = monthly.set_index("Mois").reindex(all_months).reset_index()
-    monthly.columns = ["Mois", "CA", "Commandes"]
-    monthly["CA"]        = monthly["CA"].fillna(0)
-    monthly["Commandes"] = monthly["Commandes"].fillna(0)
+    monthly = monthly.set_index("Mois").reindex(all_months)
+    monthly.index.name = "Mois"
+    monthly = monthly.reset_index()
 
-    # Labels français
     mois_labels = {
         "2025-01":"Jan","2025-02":"Fév","2025-03":"Mar","2025-04":"Avr",
         "2025-05":"Mai","2025-06":"Jun","2025-07":"Jul","2025-08":"Aoû",
@@ -252,21 +230,27 @@ with lc:
 
     fig_area = go.Figure()
 
-    # Barres Commandes (axe secondaire, plafonnées bas)
+    # Barres commandes — axe secondaire, plafond haut pour les tasser en bas
     fig_area.add_trace(go.Bar(
-        x=monthly["MoisLabel"], y=monthly["Commandes"],
-        name="Commandes", yaxis="y2",
-        marker_color="rgba(16,185,129,0.30)",
-        hovertemplate="<b>%{x}</b><br>Commandes: %{y}<extra></extra>"
+        x=monthly["MoisLabel"],
+        y=monthly["Commandes"].fillna(0),
+        name="Commandes",
+        yaxis="y2",
+        marker_color="rgba(16,185,129,0.28)",
+        hovertemplate="<b>%{x}</b><br>Commandes: %{y:.0f}<extra></extra>"
     ))
 
-    # Courbe CA (axe principal, positionnée haut)
+    # Courbe CA — axe principal, connectGaps=False pour couper proprement après Juillet
     fig_area.add_trace(go.Scatter(
-        x=monthly["MoisLabel"], y=monthly["CA"],
-        mode="lines+markers", name="CA (DZD)",
+        x=monthly["MoisLabel"],
+        y=monthly["CA"],          # NaN pour les mois sans données → ligne s'arrête
+        mode="lines+markers",
+        name="CA (DZD)",
+        connectgaps=False,        # ← ne relie pas les points nuls
         line=dict(color="#6366f1", width=3),
         marker=dict(size=8, color="#6366f1", line=dict(color="white", width=2)),
-        fill="tozeroy", fillcolor="rgba(99,102,241,0.10)",
+        fill="tozeroy",
+        fillcolor="rgba(99,102,241,0.10)",
         hovertemplate="<b>%{x}</b><br>CA: %{y:,.0f} DZD<extra></extra>"
     ))
 
@@ -275,7 +259,7 @@ with lc:
         margin=dict(l=0, r=0, t=10, b=0),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        showlegend=False,   # ← légende supprimée
+        showlegend=False,
         hovermode="x unified",
         font=dict(family="Inter, sans-serif"),
         xaxis=dict(
@@ -284,26 +268,28 @@ with lc:
             categoryorder="array",
             categoryarray=list(mois_labels.values())
         ),
-        # Axe CA (principal) — occupe toute la hauteur
+        # Axe CA principal — courbe occupe les 3/4 supérieurs du graphique
         yaxis=dict(
-            showgrid=True, gridcolor="#f8f9fa",
+            showgrid=True,
+            gridcolor="#f1f5f9",
             tickfont=dict(size=10, color="#94a3b8"),
             tickformat=",.0f",
-            range=[0, ca_max * 1.25]   # ← courbe bien au-dessus des barres
+            range=[0, ca_max * 1.30],   # ← espace au-dessus de la courbe
         ),
-        # Axe Commandes (secondaire) — plafond bas pour que les barres restent en bas
+        # Axe commandes secondaire — barres confinées au tiers inférieur
         yaxis2=dict(
-            overlaying="y", side="right",
+            overlaying="y",
+            side="right",
             showgrid=False,
             tickfont=dict(size=10, color="#94a3b8"),
-            range=[0, cmd_max * 5]     # ← barres écrasées vers le bas
+            range=[0, cmd_max * 6],     # ← barres très écrasées vers le bas
         ),
     )
     st.plotly_chart(fig_area, use_container_width=True, config={"displayModeBar": False})
     st.markdown("</div>", unsafe_allow_html=True)
+
 with rc:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">🏷️ Quelle catégorie domine notre marché ?</div>
       <div class="section-sub">Part de chaque type de produit dans le CA total</div>
     """, unsafe_allow_html=True)
@@ -315,37 +301,39 @@ with rc:
     fig_donut = go.Figure(go.Pie(
         labels=cat_data["Cat"],
         values=cat_data["CA"],
-        hole=0.62,
+        hole=0.58,
         marker=dict(
             colors=["#6366f1","#06b6d4","#10b981"],
             line=dict(color="white", width=3)
         ),
-        textinfo="label+percent",          # ← texte sur les tranches
-        textfont=dict(size=12, family="Inter"),
-        insidetextorientation="radial",
+        textinfo="label+percent",              # ← texte sur les tranches
+        textposition="inside",                 # ← texte à l'intérieur
+        insidetextorientation="horizontal",    # ← texte horizontal, lisible
+        textfont=dict(size=11, family="Inter", color="white"),
         hovertemplate="<b>%{label}</b><br>%{value:,.0f} DZD<br>%{percent}<extra></extra>",
     ))
     fig_donut.add_annotation(
         text=f"<b>{total_ca/1000:.1f}K</b><br>DZD",
-        x=0.5, y=0.5, font_size=16, showarrow=False,
+        x=0.5, y=0.5, font_size=15, showarrow=False,
         font=dict(color="#0f172a", family="Inter")
     )
     fig_donut.update_layout(
         height=300,
-        margin=dict(l=0, r=0, t=10, b=0),
+        margin=dict(l=10, r=10, t=10, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
-        showlegend=False,                  # ← légende supprimée
+        showlegend=False,                      # ← légende supprimée
         font=dict(family="Inter, sans-serif")
     )
     st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
     st.markdown("</div>", unsafe_allow_html=True)
 
+st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
 # ─── TOP PRODUITS + WILAYAS ─────────────────────────────────────────────────────
 ins1, ins2 = st.columns([5, 5], gap="medium")
 
 with ins1:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">🏆 Quels sont les produits qui génèrent le plus de revenus ?</div>
       <div class="section-sub">Top 10 produits classés par chiffre d'affaires cumulé</div>
     """, unsafe_allow_html=True)
@@ -363,6 +351,7 @@ with ins1:
     fig_bar.update_layout(
         height=340, margin=dict(l=0,r=60,t=10,b=0),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
         xaxis=dict(showgrid=True, gridcolor="#f8f9fa",
                    tickfont=dict(size=10,color="#94a3b8"), tickformat=",.0f"),
         yaxis=dict(showgrid=False, tickfont=dict(size=11,color="#334155")),
@@ -372,8 +361,7 @@ with ins1:
     st.markdown("</div>", unsafe_allow_html=True)
 
 with ins2:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">🗺️ Où perdons-nous le plus d'argent à cause des retours ?</div>
       <div class="section-sub">Top 10 wilayas — CA généré vs pertes estimées sur retours</div>
     """, unsafe_allow_html=True)
@@ -391,17 +379,17 @@ with ins2:
     fig_wil.add_trace(go.Bar(
         y=top10_wil["Wilaya"],
         x=top10_wil["Retours"] * avg_ticket,
-        name="Pertes Retours (estimé)", orientation="h",
+        name="Pertes Retours", orientation="h",
         marker_color="rgba(244,63,94,0.7)",
         hovertemplate="<b>%{y}</b><br>Pertes: %{x:,.0f} DZD<extra></extra>"
     ))
     fig_wil.update_layout(
         barmode="overlay", height=340, margin=dict(l=0,r=0,t=10,b=0),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
         xaxis=dict(showgrid=True, gridcolor="#f8f9fa",
                    tickfont=dict(size=10,color="#94a3b8"), tickformat=",.0f"),
         yaxis=dict(showgrid=False, tickfont=dict(size=11,color="#334155")),
-        legend=dict(orientation="h", y=1.08, font=dict(size=11)),
         font=dict(family="Inter, sans-serif")
     )
     st.plotly_chart(fig_wil, use_container_width=True, config={"displayModeBar": False})
@@ -409,27 +397,27 @@ with ins2:
 
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
-# ─── HEATMAP + LOGISTICS EFFICIENCY ────────────────────────────────────────────
+# ─── HEATMAP + LOGISTICS ────────────────────────────────────────────────────────
 h1, h2 = st.columns([6, 4], gap="medium")
 
 with h1:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">📅 Activité par Jour × Catégorie</div>
       <div class="section-sub">Heatmap des ventes — identifier les pics de commande</div>
     """, unsafe_allow_html=True)
     order   = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
     fr_days = {"Monday":"Lun","Tuesday":"Mar","Wednesday":"Mer","Thursday":"Jeu",
                "Friday":"Ven","Saturday":"Sam","Sunday":"Dim"}
-    heat    = df.groupby(["JourSemaine","categorie"])["Montant"].sum().reset_index()
-    pivot   = heat.pivot(index="JourSemaine", columns="categorie", values="Montant").fillna(0)
-    pivot   = pivot.reindex([d for d in order if d in pivot.index])
+    heat  = df.groupby(["JourSemaine","categorie"])["Montant"].sum().reset_index()
+    pivot = heat.pivot(index="JourSemaine", columns="categorie", values="Montant").fillna(0)
+    pivot = pivot.reindex([d for d in order if d in pivot.index])
     pivot.index = [fr_days.get(d,d) for d in pivot.index]
     fig_heat = px.imshow(pivot, color_continuous_scale="Purp",
                          aspect="auto", labels=dict(color="CA (DZD)"))
     fig_heat.update_layout(
         height=280, margin=dict(l=0,r=0,t=10,b=0),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
         font=dict(family="Inter, sans-serif", size=12),
         xaxis=dict(title="", tickfont=dict(size=11,color="#334155")),
         yaxis=dict(title="", tickfont=dict(size=11,color="#334155"))
@@ -441,39 +429,34 @@ with h1:
     st.markdown("</div>", unsafe_allow_html=True)
 
 with h2:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">🚀 A domicile vs Stop Desk : Quel est le mode de livraison le plus fiable ?</div>
       <div class="section-sub">Taux de réussite (livraison effective) par mode logistique</div>
     """, unsafe_allow_html=True)
 
-    col_presta = [c for c in df.columns if "presta" in c.lower() or "pr" in c.lower() and "station" in c.lower()]
-    col_presta = col_presta[0] if col_presta else None
+    col_presta = next((c for c in df.columns if "presta" in c.lower()), None)
 
     if col_presta:
         logist = df.groupby(col_presta).agg(
-            Total=("Livré","count"),
-            Livres=("Livré","sum")
+            Total=("Livré","count"), Livres=("Livré","sum")
         ).reset_index()
-        logist["Taux"]  = (logist["Livres"] / logist["Total"] * 100).round(1)
-        logist = logist[logist[col_presta].str.strip().str.upper().isin(["A DOMICILE","STOP DESK"])]
+        logist["Taux"] = (logist["Livres"] / logist["Total"] * 100).round(1)
+        logist = logist[
+            logist[col_presta].str.strip().str.upper().isin(["A DOMICILE","STOP DESK"])
+        ]
         logist[col_presta] = logist[col_presta].str.strip().str.title()
-
-        # Créer les labels avec taux inclus dans le label
-        labels = [f"{row[col_presta]}<br>{row['Taux']}% succès"
-                  for _, row in logist.iterrows()]
 
         fig_donut_log = go.Figure(go.Pie(
             labels=logist[col_presta],
             values=logist["Taux"],
             hole=0.60,
-            marker=dict(
-                colors=["#6366f1", "#06b6d4"],
-                line=dict(color="white", width=3)
-            ),
+            marker=dict(colors=["#6366f1","#06b6d4"],
+                        line=dict(color="white", width=3)),
             textinfo="label+percent",
-            textfont=dict(size=13, family="Inter"),
-            hovertemplate="<b>%{label}</b><br>Taux de réussite: %{value:.1f}%<extra></extra>",
+            textposition="inside",
+            insidetextorientation="horizontal",
+            textfont=dict(size=12, family="Inter", color="white"),
+            hovertemplate="<b>%{label}</b><br>Taux: %{value:.1f}%<extra></extra>",
             direction="clockwise",
             sort=False
         ))
@@ -484,30 +467,22 @@ with h2:
             showarrow=False
         )
         fig_donut_log.update_layout(
-            height=280,
-            margin=dict(l=0, r=0, t=10, b=10),
+            height=280, margin=dict(l=10,r=10,t=10,b=10),
             paper_bgcolor="rgba(0,0,0,0)",
-            showlegend=True,
-            legend=dict(
-                orientation="h", y=-0.08,
-                x=0.5, xanchor="center",
-                font=dict(size=11)
-            ),
+            showlegend=False,
             font=dict(family="Inter, sans-serif")
         )
         st.plotly_chart(fig_donut_log, use_container_width=True,
                         config={"displayModeBar": False})
-    else:
-        st.info("Colonne 'Type de préstation' introuvable.")
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ─── CLUBS VS ANIME (rangée séparée) ────────────────────────────────────────────
+st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+# ─── CLUBS VS ANIME + PERFORMANCE ───────────────────────────────────────────────
 univ_col1, univ_col2 = st.columns([4, 6], gap="medium")
 
 with univ_col1:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">⚽ Clubs vs Animé vs Autre</div>
       <div class="section-sub">Univers produits par CA généré</div>
     """, unsafe_allow_html=True)
@@ -526,10 +501,13 @@ with univ_col1:
         marker=dict(colors=["#f59e0b","#6366f1","#10b981"],
                     line=dict(color="white",width=3)),
         textinfo="label+percent",
+        textposition="inside",
+        insidetextorientation="horizontal",
+        textfont=dict(size=11, family="Inter", color="white"),
         hovertemplate="<b>%{label}</b><br>%{value:,.0f} DZD<br>%{percent}<extra></extra>"
     ))
     fig_uni.update_layout(
-        height=280, margin=dict(l=0,r=0,t=10,b=10),
+        height=280, margin=dict(l=10,r=10,t=10,b=10),
         paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
         font=dict(family="Inter, sans-serif", size=12)
     )
@@ -537,44 +515,43 @@ with univ_col1:
     st.markdown("</div>", unsafe_allow_html=True)
 
 with univ_col2:
-    st.markdown("""
-    <div class="card">
+    st.markdown("""<div class="card">
       <div class="section-title">📊 Performance par Univers Produit</div>
       <div class="section-sub">Comparaison CA et taux de retour entre Clubs, Animé et Autre</div>
     """, unsafe_allow_html=True)
     df2_agg = df2.groupby("Univers").agg(
-        CA=("Montant","sum"),
-        Retours=("Retour","mean")
+        CA=("Montant","sum"), Retours=("Retour","mean")
     ).reset_index()
     df2_agg["Retours"] = df2_agg["Retours"] * 100
-
     fig_perf = go.Figure()
     fig_perf.add_trace(go.Bar(
         x=df2_agg["Univers"], y=df2_agg["CA"],
-        name="CA (DZD)", marker_color=["#6366f1","#f59e0b","#10b981"],
+        name="CA (DZD)",
+        marker_color=["#6366f1","#f59e0b","#10b981"],
         hovertemplate="<b>%{x}</b><br>CA: %{y:,.0f} DZD<extra></extra>",
         text=df2_agg["CA"].apply(lambda x: f"{x/1000:.0f}K"),
-        textposition="outside", textfont=dict(size=12, family="Inter")
+        textposition="outside",
+        textfont=dict(size=12, family="Inter")
     ))
     fig_perf.add_trace(go.Scatter(
         x=df2_agg["Univers"], y=df2_agg["Retours"],
-        name="Taux de Retour (%)", yaxis="y2",
+        name="Taux Retour (%)", yaxis="y2",
         mode="markers+lines",
         marker=dict(size=12, color="#f43f5e", symbol="diamond",
                     line=dict(color="white", width=2)),
         line=dict(color="#f43f5e", width=2, dash="dot"),
-        hovertemplate="<b>%{x}</b><br>Taux retour: %{y:.1f}%<extra></extra>"
+        hovertemplate="<b>%{x}</b><br>Retour: %{y:.1f}%<extra></extra>"
     ))
     fig_perf.update_layout(
         height=280, margin=dict(l=0,r=0,t=20,b=0),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
         xaxis=dict(showgrid=False, tickfont=dict(size=12,color="#334155")),
         yaxis=dict(showgrid=True, gridcolor="#f8f9fa",
                    tickfont=dict(size=10,color="#94a3b8"), tickformat=",.0f"),
         yaxis2=dict(overlaying="y", side="right", showgrid=False,
                     tickfont=dict(size=10,color="#f43f5e"), ticksuffix="%",
                     range=[0, df2_agg["Retours"].max()*1.5]),
-        legend=dict(orientation="h", y=1.12, font=dict(size=11)),
         font=dict(family="Inter, sans-serif")
     )
     st.plotly_chart(fig_perf, use_container_width=True, config={"displayModeBar": False})
